@@ -1,0 +1,22 @@
+{
+  "name": "job-scraper",
+  "version": "1.0.0",
+  "description": "A web scraper for finding junior software developer jobs in Germany from company career pages",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "scrape": "node src/index.js"
+  },
+  "keywords": [
+    "web-scraping",
+    "job-search",
+    "puppeteer",
+    "automation"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "puppeteer": "^22.0.0"
+  }
+}

@@ -1,0 +1,148 @@
+{
+  "companies": [
+    {
+      "name": "Amadeus Fire AG",
+      "url": "https://karriere.amadeus-fire.de/jobs/",
+      "selectors": {
+        "jobList": ".job-item, .job-listing, article, [class*='job'], li[class*='position']",
+        "jobTitle": ".job-title, h2, h3, a[class*='title'], [class*='position-title']",
+        "jobLocation": ".job-location, .location, [class*='location'], span[class*='city']",
+        "jobLink": "a[href*='job'], a[href*='karriere'], a.job-link",
+        "jobDescription": ".job-description, .description, .job-details, p"
+      },
+      "notes": "Personnel services company - career portal at karriere.amadeus-fire.de"
+    },
+    {
+      "name": "Allianz in Deutschland",
+      "url": "https://careers.allianz.com/Deutschland?locale=de_DE",
+      "selectors": {
+        "jobList": ".job-item, .position, article, [data-automation-id*='job'], li[role='listitem']",
+        "jobTitle": ".job-title, h2, h3, a[class*='title'], [data-automation-id*='title']",
+        "jobLocation": ".job-location, .location, [data-automation-id*='location'], span[class*='location']",
+        "jobLink": "a[href*='job'], a[href*='position'], a[data-automation-id*='apply']",
+        "jobDescription": ".job-description, .description, [data-automation-id*='description'], p"
+      },
+      "notes": "Insurance company - using Allianz Careers platform"
+    },
+    {
+      "name": "Bosch Gruppe",
+      "url": "https://jobs.bosch.de/en",
+      "selectors": {
+        "jobList": ".job-item, .position, article, li[class*='job'], [data-jobid]",
+        "jobTitle": ".job-title, h2, h3, a[class*='title'], span[class*='title']",
+        "jobLocation": ".location, .job-location, span[class*='location'], [class*='city']",
+        "jobLink": "a[href*='job'], a[href*='position'], a.apply-link",
+        "jobDescription": ".job-description, .description, .content, p"
+      },
+      "notes": "Industrial company - Bosch job portal"
+    },
+    {
+      "name": "Deutsche Telekom AG",
+      "url": "https://careers.telekom.com/de",
+      "selectors": {
+        "jobList": ".job-item, .job-listing, article, li[class*='job'], [class*='position']",
+        "jobTitle": ".job-title, h2, h3, a[class*='title'], span[class*='job-title']",
+        "jobLocation": ".location, .job-location, span[class*='location'], [data-location]",
+        "jobLink": "a[href*='job'], a[href*='position'], a[href*='karriere']",
+        "jobDescription": ".job-description, .description, .details, p"
+      },
+      "notes": "Telecommunications company - Telekom careers portal"
+    },
+    {
+      "name": "Mercedes-Benz Group",
+      "url": "https://jobs.mercedes-benz.com/",
+      "selectors": {
+        "jobList": ".job-item, .position, article, li[class*='job'], [data-job-id]",
+        "jobTitle": ".job-title, h2, h3, a[class*='title'], [class*='position-title']",
+        "jobLocation": ".location, .job-location, span[class*='location'], [data-city]",
+        "jobLink": "a[href*='job'], a[href*='position'], a.job-link",
+        "jobDescription": ".job-description, .description, .job-details, p"
+      },
+      "notes": "Automotive company - Mercedes-Benz job portal"
+    },
+    {
+      "name": "Globus Baumarkt",
+      "url": "https://www.globus-baumarkt.de/info/karriere/",
+      "selectors": {
+        "jobList": ".job-item, .job-listing, article, [class*='job'], li[class*='stelle']",
+        "jobTitle": ".job-title, h2, h3, a[class*='title'], [class*='position']",
+        "jobLocation": ".location, .job-location, span[class*='ort'], [class*='location']",
+        "jobLink": "a[href*='job'], a[href*='stelle'], a.apply-button",
+        "jobDescription": ".job-description, .description, .text, p"
+      },
+      "notes": "Retail hardware store - Globus Baumarkt career page"
+    },
+    {
+      "name": "Siemens AG",
+      "url": "https://jobs.siemens.com/careers",
+      "selectors": {
+        "jobList": ".job-item, .position, article, li[class*='job'], [data-job]",
+        "jobTitle": ".job-title, h2, h3, a[class*='title'], span[class*='jobtitle']",
+        "jobLocation": ".location, .job-location, span[class*='location'], [class*='city']",
+        "jobLink": "a[href*='job'], a[href*='position'], a[class*='apply']",
+        "jobDescription": ".job-description, .description, .details, p"
+      },
+      "notes": "Industrial/technology company - Siemens job portal (may use SmartRecruiters)"
+    },
+    {
+      "name": "BMW Group",
+      "url": "https://www.bmwgroup.jobs/de/de/jobs.html",
+      "selectors": {
+        "jobList": ".job-item, .position, article, li[class*='job'], [data-jobid]",
+        "jobTitle": ".job-title, h2, h3, a[class*='title'], span[class*='position']",
+        "jobLocation": ".location, .job-location, span[class*='location'], [class*='standort']",
+        "jobLink": "a[href*='job'], a[href*='position'], a.job-link",
+        "jobDescription": ".job-description, .description, .content, p"
+      },
+      "notes": "Automotive company - BMW Group job portal"
+    },
+    {
+      "name": "DIS AG",
+      "url": "https://www.dis-ag.com/bewerber/",
+      "selectors": {
+        "jobList": ".job-item, .job-listing, article, [class*='job'], li[class*='stelle']",
+        "jobTitle": ".job-title, h2, h3, a[class*='title'], [class*='jobtitle']",
+        "jobLocation": ".location, .job-location, span[class*='ort'], [class*='location']",
+        "jobLink": "a[href*='job'], a[href*='stelle'], a[href*='position']",
+        "jobDescription": ".job-description, .description, .details, p"
+      },
+      "notes": "Personnel services company - DIS AG job portal"
+    },
+    {
+      "name": "TEMPTON",
+      "url": "https://www.tempton.de/karriere-intern/jobsuche",
+      "selectors": {
+        "jobList": ".job-item, .job-listing, article, [class*='job'], li[class*='position']",
+        "jobTitle": ".job-title, h2, h3, a[class*='title'], span[class*='stelle']",
+        "jobLocation": ".location, .job-location, span[class*='ort'], [class*='location']",
+        "jobLink": "a[href*='job'], a[href*='stelle'], a.apply-link",
+        "jobDescription": ".job-description, .description, .text, p"
+      },
+      "notes": "Personnel services company - TEMPTON internal career/job search"
+    }
+  ],
+  "_instructions": {
+    "description": "Career pages for top employers from kununu's best companies in Hamburg 2025",
+    "format": {
+      "name": "Company name for identification",
+      "url": "Direct URL to the company's career/jobs page",
+      "selectors": {
+        "jobList": "CSS selector(s) for job listing containers (comma-separated for fallbacks)",
+        "jobTitle": "CSS selector(s) for job title within each listing",
+        "jobLocation": "CSS selector(s) for job location",
+        "jobLink": "CSS selector(s) for the link to the full job posting",
+        "jobDescription": "CSS selector(s) for job description text (used to extract experience requirements)"
+      },
+      "notes": "Optional field for any notes about this company's page structure"
+    },
+    "tips": [
+      "Right-click on elements in the browser and select 'Inspect' to find CSS selectors",
+      "Provide multiple selectors separated by commas as fallbacks",
+      "The scraper will try each selector until it finds a match",
+      "Test on 1-2 companies first before running all 10",
+      "You may need to refine selectors after seeing initial results",
+      "Common career page platforms: Greenhouse, Lever, Workday, Personio, SmartRecruiters"
+    ],
+    "note": "These selectors are generic starting points. You'll likely need to customize them for each company after testing. Visit each URL in your browser and inspect the page structure to find the exact selectors needed."
+  }
+}
