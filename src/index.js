@@ -121,25 +121,36 @@ async function isLoggedIn(page) {
   }
 }
 
+async function acceptCookie(page) {
+  const cookie = '[id="ccmgt_explicit_accept"]';
+  await page.waitForSelector(cookie, {
+    timeout: 10000,
+  });
+  await randomWait(500, 1000);
+  await page.click(cookie);
+
+}
+
+async function setInput(page, attr, input) {
+  const selector = await page.waitForSelector(
+    attr,
+    { timeout: 10000 }
+  );
+  await selector.click();
+  await selector.type(input, { delay: 100 });
+}
+
 // Manueller Login - Warte bis Nutzer eingeloggt ist
 async function login(page) {
-  // Prüfe ob gespeicherte Cookies existieren
   if (existsSync(COOKIES_PATH)) {
-    console.log("🍪 Lade gespeicherte Cookies...");
     const cookies = JSON.parse(readFileSync(COOKIES_PATH, "utf8"));
     await page.setCookie(...cookies);
     console.log("✅ Cookies geladen, Login übersprungen\n");
-
-    await page.goto("https://www.stepstone.de/", {
-      waitUntil: "domcontentloaded",
-      timeout: 30000,
-    });
     return;
   }
 
   console.log("🔐 Keine Cookies gefunden, führe Login durch...\n");
 
-  const cookie = '[id="ccmgt_explicit_accept"]';
   const login = '[aria-label="Login"]';
   const signin = '[href="/de-DE/candidate/login"]';
   const email = '[name="email"]';
@@ -155,11 +166,7 @@ async function login(page) {
   await randomWait(2000, 3000);
 
   console.log("🍪 Suche Cookie-Banner...");
-  await page.waitForSelector(cookie, {
-    timeout: 10000,
-  });
-  await randomWait(500, 1000);
-  await page.click(cookie);
+  await acceptCookie(page);
 
   await page.evaluate(() => window.scrollTo(0, 0));
 
@@ -230,30 +237,26 @@ async function searchJobs(page) {
 
     await wait(2000, "Lade Startseite...");
 
+    await acceptCookie(page);
+
     // Suchbegriff eingeben
-    console.log(`🔎 Suche nach: "${CONFIG.suchbegriff}"`);
-    const searchInput = await page.waitForSelector(
-      'input[name="q"], input[data-at="search-input"]',
-      { timeout: 10000 }
-    );
-    await searchInput.click({ clickCount: 3 }); // Text markieren
-    await searchInput.type(CONFIG.suchbegriff, { delay: 100 });
+    await setInput(page, '[placeholder="(Jobtitel, Kompetenz oder Firmenname)"]', CONFIG.suchbegriff)
+
+    await randomWait(1000, 1500);
 
     // Ort eingeben (Deutschland)
-    console.log("📍 Setze Ort: Deutschland");
-    const locationInput = await page.$(
-      'input[name="location"], input[data-at="location-input"]'
-    );
-    if (locationInput) {
-      await locationInput.click({ clickCount: 3 });
-      await locationInput.type("Deutschland", { delay: 100 });
-    }
+    await setInput(page, '[placeholder="(Ort oder 5-stellige PLZ)"]', "Deutschland")
+
+    await randomWait(1000, 1500);
 
     // Suche starten
     console.log("🚀 Starte Suche...");
-    await page.click('button[type="submit"], button[data-at="search-button"]');
+    await page.click('[aria-label="Jobs finden"]');
 
     await wait(3000, "Warte auf Suchergebnisse...");
+
+    await randomWait(20000, 300000);
+
 
     // Home-Office Filter setzen
     console.log("🏠 Setze Home-Office Filter...");
@@ -427,13 +430,10 @@ async function main() {
     const page = await browser.newPage();
     console.log("✅ Neue Seite erstellt!");
 
-    // 1. Login
     await login(page);
 
-    // 2. Jobs suchen
     await searchJobs(page);
 
-    // 3. Erste "Schnell bewerben" Stelle finden
     const jobFound = await findQuickApplyJob(page);
 
     if (!jobFound) {
