@@ -1,12 +1,8 @@
-import puppeteer from "puppeteer-extra";
-import StealthPlugin from "puppeteer-extra-plugin-stealth";
+import puppeteer from "puppeteer";
 import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { readFileSync, writeFileSync, existsSync } from "fs";
-
-// Stealth-Plugin aktivieren um Bot-Detection zu umgehen
-puppeteer.use(StealthPlugin());
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -419,36 +415,17 @@ async function main() {
     browser = await puppeteer.launch({
       headless: CONFIG.headless,
       args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
         "--start-maximized",
         "--disable-blink-features=AutomationControlled",
         "--lang=de-DE",
       ],
       defaultViewport: null, // Nutze echte Bildschirmgröße
-      protocolTimeout: 60000,
-      timeout: 60000,
-      ignoreHTTPSErrors: true,
     });
 
     console.log("✅ Browser gestartet!");
 
     const page = await browser.newPage();
     console.log("✅ Neue Seite erstellt!");
-
-    // Realistischen User-Agent setzen (macOS mit aktuellem Chrome)
-    await page.setUserAgent(
-      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-    );
-
-    // Zusätzliche Headers setzen
-    await page.setExtraHTTPHeaders({
-      "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
-      Accept:
-        "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-      "Accept-Encoding": "gzip, deflate, br",
-    });
 
     // 1. Login
     await login(page);
