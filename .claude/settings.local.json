@@ -3,7 +3,10 @@
     "allow": [
       "Bash(npm install:*)",
       "WebFetch(domain:news.kununu.com)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(npm update:*)",
+      "Bash(ls:*)",
+      "Bash(sips:*)"
     ]
   }
 }

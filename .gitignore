@@ -1,26 +1,27 @@
 # Dependencies
 node_modules/
-
-# Output files
-output/*.json
-
-# Keep output directory but not the JSON files
-!output/.gitkeep
-
-# System files
-.DS_Store
-Thumbs.db
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Logs
-*.log
-npm-debug.log*
+package-lock.json
 
 # Environment variables
 .env
-.env.local
+
+# Cookies
+cookies.json
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Output
+output/*.json
+output/*.csv
+output/*.png
+!output/.gitkeep
+
+# Browser data
+.chrome_user_data/
