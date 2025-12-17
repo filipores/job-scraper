@@ -48,77 +48,14 @@ async function humanType(page, selector, text) {
   await page.waitForSelector(selector, { timeout: 10000 });
   const element = await page.$(selector);
   await element.click();
-  await randomWait(300, 800);
+  await randomWait(100, 300);
 
   // Tippe Zeichen für Zeichen mit zufälligen Verzögerungen
   for (const char of text) {
     await element.type(char, { delay: Math.random() * 100 + 50 });
   }
 
-  await randomWait(200, 500);
-}
-
-// Screenshot für Debugging
-async function takeScreenshot(page, name) {
-  try {
-    const timestamp = new Date().getTime();
-    const filepath = join(
-      dirname(fileURLToPath(import.meta.url)),
-      "..",
-      "output",
-      `${name}_${timestamp}.png`
-    );
-    await page.screenshot({ path: filepath, fullPage: true });
-    console.log(`📸 Screenshot gespeichert: ${filepath}`);
-  } catch (error) {
-    console.log("⚠️  Screenshot konnte nicht erstellt werden:", error.message);
-  }
-}
-
-// Überprüfe ob Nutzer eingeloggt ist
-async function isLoggedIn(page) {
-  try {
-    // Verschiedene Methoden um Login zu erkennen
-    const checks = await page.evaluate(() => {
-      // Check 1: Logout-Button vorhanden?
-      const logoutButton = document.querySelector(
-        'a[href*="logout"], button:has-text("Logout"), a:has-text("Abmelden")'
-      );
-
-      // Check 2: Mein Account / Profil Link vorhanden?
-      const accountLink = document.querySelector(
-        'a[href*="account"], a[href*="profile"], a:has-text("Mein")'
-      );
-
-      // Check 3: Nicht auf Login-Seite?
-      const notOnLoginPage =
-        !window.location.href.includes("/login") &&
-        !window.location.href.includes("/account/login");
-
-      // Check 4: User-Menü vorhanden?
-      const userMenu = document.querySelector('[data-at="user-menu"]');
-
-      return {
-        logoutButton: !!logoutButton,
-        accountLink: !!accountLink,
-        notOnLoginPage,
-        userMenu: !!userMenu,
-        url: window.location.href,
-      };
-    });
-
-    // Login ist erfolgreich wenn mindestens 2 Checks positiv sind
-    const positiveChecks = [
-      checks.logoutButton,
-      checks.accountLink,
-      checks.notOnLoginPage,
-      checks.userMenu,
-    ].filter(Boolean).length;
-
-    return positiveChecks >= 2;
-  } catch (error) {
-    return false;
-  }
+  await randomWait(100, 300);
 }
 
 async function acceptCookie(page) {
@@ -126,18 +63,9 @@ async function acceptCookie(page) {
   await page.waitForSelector(cookie, {
     timeout: 10000,
   });
-  await randomWait(500, 1000);
+  await randomWait(200, 500);
   await page.click(cookie);
 
-}
-
-async function setInput(page, attr, input) {
-  const selector = await page.waitForSelector(
-    attr,
-    { timeout: 10000 }
-  );
-  await selector.click();
-  await selector.type(input, { delay: 100 });
 }
 
 // Manueller Login - Warte bis Nutzer eingeloggt ist
@@ -225,7 +153,7 @@ async function login(page) {
 }
 
 // Suche nach Jobs
-async function searchJobs(page) {
+async function searchJobs(page, browser) {
   console.log("🔍 Starte Jobsuche...");
 
   try {
@@ -235,17 +163,17 @@ async function searchJobs(page) {
       timeout: 30000,
     });
 
-    await wait(2000, "Lade Startseite...");
+    await randomWait(1000, 2000);
 
     await acceptCookie(page);
 
     // Suchbegriff eingeben
-    await setInput(page, '[placeholder="(Jobtitel, Kompetenz oder Firmenname)"]', CONFIG.suchbegriff)
+    await humanType(page, '[placeholder="(Jobtitel, Kompetenz oder Firmenname)"]', CONFIG.suchbegriff)
 
     await randomWait(1000, 1500);
 
     // Ort eingeben (Deutschland)
-    await setInput(page, '[placeholder="(Ort oder 5-stellige PLZ)"]', "Deutschland")
+    await humanType(page, '[placeholder="(Ort oder 5-stellige PLZ)"]', "Deutschland")
 
     await randomWait(1000, 1500);
 
@@ -255,76 +183,91 @@ async function searchJobs(page) {
 
     await wait(3000, "Warte auf Suchergebnisse...");
 
-    await randomWait(20000, 300000);
 
+    // Klicke auf "Schnelle Bewerbung" Filter
+    await page.click('[data-at="applicationMethod-option-schnelle-bewerbung"]');
+    console.log("✅ Schnelle Bewerbung Filter geklickt");
 
-    // Home-Office Filter setzen
-    console.log("🏠 Setze Home-Office Filter...");
-    try {
-      // Warte auf Filter-Optionen
-      await page.waitForSelector('[data-at="filter"]', { timeout: 5000 });
+    // Warte auf DOM-Stabilisierung nach Filter-Klick
+    await randomWait(2000, 3000);
 
-      // Klicke auf Home-Office Filter
-      const homeOfficeFilter = await page.$(
-        'button:has-text("Home Office"), a:has-text("Home Office"), [data-testid*="homeoffice"]'
-      );
-      if (homeOfficeFilter) {
-        await homeOfficeFilter.click();
-        await wait(2000, "Home-Office Filter aktiviert");
-      } else {
-        console.log("⚠️  Home-Office Filter nicht gefunden, fahre ohne fort");
+    // Warte auf neue Job-Elemente
+    await page.waitForSelector('article[data-testid="job-item"]', {
+      timeout: 10000
+    });
+
+    // Re-query direkt vor Verwendung (GitHub Issue #6033: Verhindert "detached node" Fehler)
+    const jobItems = await page.$$('article[data-testid="job-item"]');
+    console.log(`✅ ${jobItems.length} Jobs gefunden`);
+
+    await randomWait(1000, 2000);
+
+    // Durchlaufe Job-Items bis ein StepStone-Job gefunden wird
+    for (let i = 0; i < jobItems.length; i++) {
+      console.log(`\n🔍 Prüfe Job ${i + 1} von ${jobItems.length}...`);
+
+      // Klicke auf Job-Item via evaluate (robuster gegen DOM-Änderungen)
+      await page.evaluate((index) => {
+        const jobs = document.querySelectorAll('article[data-testid="job-item"]');
+        if (jobs[index]) jobs[index].click();
+      }, i);
+
+      await randomWait(2000, 3000);
+
+      // Hole alle Tabs und nimm das letzte (das neue)
+      const pages = await browser.pages();
+      const newPage = pages[pages.length - 1];
+
+      // Warte kurz, damit die Seite lädt
+      await randomWait(1000, 2000);
+
+      // Prüfe ob die URL noch stepstone.de enthält
+      const currentUrl = newPage.url();
+      console.log(`📍 URL: ${currentUrl}`);
+
+      if (!currentUrl.includes('stepstone.de')) {
+        console.log(`⚠️  Externe Weiterleitung erkannt - schließe Tab und versuche nächsten Job`);
+        await newPage.close();
+        await randomWait(1000, 2000);
+        continue;
       }
-    } catch (e) {
-      console.log("⚠️  Konnte Home-Office Filter nicht setzen:", e.message);
+
+      // StepStone-Job gefunden!
+      console.log("✅ StepStone-Job gefunden!");
+      console.log("✅ Jobsuche abgeschlossen!");
+      return newPage;
     }
 
-    console.log("✅ Jobsuche abgeschlossen!");
+    // Keine StepStone-Jobs gefunden
+    console.log("❌ Alle Jobs leiten zu externen Seiten weiter!");
+    return null;
   } catch (error) {
     console.error("❌ Fehler bei der Jobsuche:", error.message);
     throw error;
   }
 }
 
-// Finde erste "Schnell bewerben" Stelle
+// Prüfe ob "Schnell bewerben" auf Job-Detail-Seite verfügbar ist
 async function findQuickApplyJob(page) {
-  console.log('⚡ Suche nach "Schnell bewerben" Stellen...');
+  console.log('⚡ Prüfe "Schnell bewerben" auf Job-Seite...');
 
   try {
-    // Warte auf Job-Liste
-    await page.waitForSelector('[data-at="job-item"], article', {
-      timeout: 10000,
-    });
-    await wait(2000);
+    // Warte auf Job-Detail-Seite
+    await randomWait(2000, 3000);
 
-    // Scrolle durch die Seite um alle Jobs zu laden
-    await page.evaluate(() => {
-      window.scrollBy(0, 1000);
-    });
-    await wait(1000);
+    // await wait(200000)
+    // Suche nach "Schnell bewerben" Button auf der Detail-Seite
+    const quickApplyButton = await page.$('[data-testid="harmonised-apply-button"]');
 
-    // Suche nach "Schnell bewerben" Button
-    const quickApplyButtons = await page.$$(
-      '[data-at="quick-apply-button"], button:has-text("Schnell bewerben")'
-    );
-
-    if (quickApplyButtons.length === 0) {
-      console.log('❌ Keine "Schnell bewerben" Stellen gefunden!');
-      return null;
-    }
-
-    console.log(
-      `✅ ${quickApplyButtons.length} "Schnell bewerben" Stelle(n) gefunden!`
-    );
-
-    // Klicke auf den ersten "Schnell bewerben" Button
-    console.log('🎯 Öffne erste "Schnell bewerben" Stelle...');
-    await quickApplyButtons[0].click();
-    await wait(3000, "Lade Stellenanzeige...");
+    // Klicke auf "Schnell bewerben"
+    console.log('🎯 Klicke auf "Schnell bewerben"...');
+    await quickApplyButton.click();
+    await wait(3000, "Lade Bewerbungsformular...");
 
     return true;
   } catch (error) {
-    console.error("❌ Fehler beim Suchen der Stelle:", error.message);
-    return null;
+    console.error("❌ Fehler beim Öffnen der Bewerbung:", error.message);
+    return false;
   }
 }
 
@@ -432,9 +375,15 @@ async function main() {
 
     await login(page);
 
-    await searchJobs(page);
+    const jobPage = await searchJobs(page, browser);
 
-    const jobFound = await findQuickApplyJob(page);
+    if (!jobPage) {
+      console.log("❌ Keine StepStone-Jobs gefunden (nur externe Weiterleitungen). Beende Bot.");
+      await browser.close();
+      return;
+    }
+
+    const jobFound = await findQuickApplyJob(jobPage);
 
     if (!jobFound) {
       console.log("❌ Keine passende Stelle gefunden. Beende Bot.");
@@ -443,7 +392,7 @@ async function main() {
     }
 
     // 4. Bewerbung ausfüllen
-    await fillApplication(page);
+    await fillApplication(jobPage);
 
     console.log("\n✅ Bot erfolgreich beendet!");
 
