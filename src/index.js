@@ -48,14 +48,11 @@ async function humanType(page, selector, text) {
   await page.waitForSelector(selector, { timeout: 10000 });
   const element = await page.$(selector);
   await element.click();
-  await randomWait(100, 300);
 
   // Tippe Zeichen für Zeichen mit zufälligen Verzögerungen
   for (const char of text) {
     await element.type(char, { delay: Math.random() * 100 + 50 });
   }
-
-  await randomWait(100, 300);
 }
 
 async function acceptCookie(page) {
@@ -158,38 +155,31 @@ async function searchJobs(page, browser) {
 
   try {
     // Zur Startseite
-    await page.goto("https://www.stepstone.de/", {
+    await page.goto("https://www.stepstone.de/jobs/fullstack-entwickler/in-deutschland?radius=30&action=facet_selected%3bapplicationMethod%3bINTERNAL&am=INTERNAL&searchOrigin=membersarea", {
       waitUntil: "networkidle2",
-      timeout: 30000,
     });
 
-    await randomWait(1000, 2000);
+    await randomWait(100, 200);
 
-    await acceptCookie(page);
+    // await acceptCookie(page);
 
-    // Suchbegriff eingeben
-    await humanType(page, '[placeholder="(Jobtitel, Kompetenz oder Firmenname)"]', CONFIG.suchbegriff)
+    // await humanType(page, '[placeholder="(Jobtitel, Kompetenz oder Firmenname)"]', CONFIG.suchbegriff)
 
-    await randomWait(1000, 1500);
+    // await randomWait(100, 200);
 
-    // Ort eingeben (Deutschland)
-    await humanType(page, '[placeholder="(Ort oder 5-stellige PLZ)"]', "Deutschland")
+    // await humanType(page, '[placeholder="(Ort oder 5-stellige PLZ)"]', "Deutschland")
 
-    await randomWait(1000, 1500);
+    // await randomWait(100, 200);
 
-    // Suche starten
-    console.log("🚀 Starte Suche...");
-    await page.click('[aria-label="Jobs finden"]');
+    // await page.click('[aria-label="Jobs finden"]');
 
-    await wait(3000, "Warte auf Suchergebnisse...");
+    // await wait(3000, "Warte auf Suchergebnisse...");
 
+    // await page.click('[data-at="applicationMethod-option-schnelle-bewerbung"]');
+    // console.log("✅ Schnelle Bewerbung Filter geklickt");
 
-    // Klicke auf "Schnelle Bewerbung" Filter
-    await page.click('[data-at="applicationMethod-option-schnelle-bewerbung"]');
-    console.log("✅ Schnelle Bewerbung Filter geklickt");
-
-    // Warte auf DOM-Stabilisierung nach Filter-Klick
-    await randomWait(2000, 3000);
+    // // Warte auf DOM-Stabilisierung nach Filter-Klick
+    // await randomWait(2000, 3000);
 
     // Warte auf neue Job-Elemente
     await page.waitForSelector('article[data-testid="job-item"]', {
@@ -198,12 +188,11 @@ async function searchJobs(page, browser) {
 
     // Re-query direkt vor Verwendung (GitHub Issue #6033: Verhindert "detached node" Fehler)
     const jobItems = await page.$$('article[data-testid="job-item"]');
-    console.log(`✅ ${jobItems.length} Jobs gefunden`);
 
-    await randomWait(1000, 2000);
+    await randomWait(100, 200);
 
     // Durchlaufe Job-Items bis ein StepStone-Job gefunden wird
-    for (let i = 0; i < jobItems.length; i++) {
+    for (let i = 1; i < jobItems.length; i++) {
       console.log(`\n🔍 Prüfe Job ${i + 1} von ${jobItems.length}...`);
 
       // Klicke auf Job-Item via evaluate (robuster gegen DOM-Änderungen)
@@ -212,30 +201,44 @@ async function searchJobs(page, browser) {
         if (jobs[index]) jobs[index].click();
       }, i);
 
-      await randomWait(2000, 3000);
+      await randomWait(3000, 4000);
 
       // Hole alle Tabs und nimm das letzte (das neue)
       const pages = await browser.pages();
       const newPage = pages[pages.length - 1];
 
-      // Warte kurz, damit die Seite lädt
-      await randomWait(1000, 2000);
+      // await randomWait(3000, 4000);
 
-      // Prüfe ob die URL noch stepstone.de enthält
-      const currentUrl = newPage.url();
-      console.log(`📍 URL: ${currentUrl}`);
+      await newPage.waitForSelector('.job-ad-display-wg9eq6');
 
-      if (!currentUrl.includes('stepstone.de')) {
-        console.log(`⚠️  Externe Weiterleitung erkannt - schließe Tab und versuche nächsten Job`);
+      // Prüfe ob Button disabled ist                                                  
+      const isDisabled = await newPage.evaluate(() => {
+        const button = document.querySelector('.job-ad-display-wg9eq6');
+        return button.disabled || button.hasAttribute('disabled');
+      });
+
+      if (isDisabled) {
+        console.log('⚠️ Button ist disabled - schließe Tab und versuche nächsten Job');
         await newPage.close();
         await randomWait(1000, 2000);
         continue;
       }
 
-      // StepStone-Job gefunden!
-      console.log("✅ StepStone-Job gefunden!");
-      console.log("✅ Jobsuche abgeschlossen!");
-      return newPage;
+      await newPage.click('.job-ad-display-wg9eq6');
+
+      await randomWait(3000, 4000);
+
+      const pages1 = await browser.pages();
+
+      const newPage1 = pages1[pages1.length - 1];
+
+      await randomWait(3000, 4000);
+      const applyElement = await newPage1.$('[type="submit"]')
+      console.log("gefunden", applyElement)
+      if (applyElement) {
+        await fillApplication(newPage1);
+      }
+      await newPage1.close();
     }
 
     // Keine StepStone-Jobs gefunden
@@ -274,62 +277,50 @@ async function findQuickApplyJob(page) {
 // Bewerbung ausfüllen
 async function fillApplication(page) {
   console.log("📝 Fülle Bewerbungsformular aus...");
-
+  //TODO 
+  // wie hat er das mit dem submit gelöst
   try {
-    // Warte auf Bewerbungsformular
-    await page.waitForSelector('form, [data-at="application-form"]', {
-      timeout: 10000,
+    await wait(2000);
+
+    // Prüfe ob Submit-Button existiert
+    const submitExists = await page.$('[type="submit"]');
+    console.log("Submit-Button gefunden:", !!submitExists);
+
+    // Klicke Checkbox
+    const checkboxClicked = await page.evaluate(() => {
+      const checkbox = document.querySelector('.apply-application-process-renderer-wwjaa3');
+      if (checkbox) {
+        checkbox.scrollIntoView({ behavior: 'instant', block: 'center' });
+        checkbox.click();
+        return true;
+      }
+      return false;
     });
-    await wait(2000);
 
-    // Gehaltsvorstellung eingeben
-    console.log(`💰 Trage Gehaltsvorstellung ein: ${CONFIG.gehalt}€`);
-    const salaryInput = await page.$(
-      'input[name*="salary"], input[placeholder*="Gehalt"]'
-    );
-    if (salaryInput) {
-      await salaryInput.click({ clickCount: 3 });
-      await salaryInput.type(CONFIG.gehalt, { delay: 100 });
+    if (checkboxClicked) {
+      console.log("✅ Checkbox geklickt");
+      // Warte bis Submit-Button aktiviert wird
+      await randomWait(2000, 3000);
     }
 
-    // Startdatum eingeben
-    console.log(`📅 Trage Startdatum ein: ${CONFIG.startdatum}`);
-    const startDateInput = await page.$(
-      'input[name*="start"], input[placeholder*="Datum"]'
-    );
-    if (startDateInput) {
-      await startDateInput.click({ clickCount: 3 });
-      await startDateInput.type(CONFIG.startdatum, { delay: 100 });
+    // Klicke Submit-Button
+    const submitClicked = await page.evaluate(() => {
+      const submit = document.querySelector('[type="submit"]');
+      if (submit && !submit.disabled) {
+        submit.scrollIntoView({ behavior: 'instant', block: 'center' });
+        submit.click();
+        return true;
+      }
+      return false;
+    });
+
+    if (submitClicked) {
+      console.log("✅ Bewerbung abgeschickt!");
+    } else {
+      console.log("❌ Submit-Button nicht klickbar (disabled oder nicht gefunden)");
     }
 
-    await wait(2000);
-
-    console.log("✅ Formular ausgefüllt!");
-
-    // Test-Modus: Stoppe hier
-    if (CONFIG.testModus) {
-      console.log("\n⚠️  TEST-MODUS AKTIV - Bewerbung wird NICHT abgesendet!");
-      console.log("📋 Du kannst jetzt das Formular überprüfen.");
-      console.log(
-        "💡 Um automatisch zu versenden, setze TEST_MODUS=false in der .env Datei"
-      );
-      console.log("\n⏸️  Browser bleibt offen zur Überprüfung...");
-
-      // Warte 2 Minuten, damit der Benutzer das Formular überprüfen kann
-      await wait(120000, "Warte 2 Minuten...");
-      return true;
-    }
-
-    // Bewerbung absenden (nur wenn TEST_MODUS=false)
-    console.log("📤 Sende Bewerbung ab...");
-    const submitButton = await page.$(
-      'button[type="submit"], button:has-text("Bewerben")'
-    );
-    if (submitButton) {
-      await submitButton.click();
-      await wait(3000, "Warte auf Bestätigung...");
-      console.log("✅ Bewerbung abgesendet!");
-    }
+    await randomWait(3000, 5000);
 
     return true;
   } catch (error) {
