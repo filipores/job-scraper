@@ -19,6 +19,22 @@ const CONFIG = {
   suchbegriff: process.env.SUCHBEGRIFF || "Fullstack Entwickler",
   testModus: process.env.TEST_MODUS !== "false",
   headless: process.env.HEADLESS === "true",
+
+  // Fragebogen
+  staatsangehoerigkeit: process.env.STAATSANGEHOERIGKEIT || "DE",
+  verfuegbarAb: process.env.VERFUEGBAR_AB || "2026-01-01",
+  verfuegbarBis: process.env.VERFUEGBAR_BIS || "",
+  arbeitsstundenVon: process.env.ARBEITSSTUNDEN_VON || "40",
+  arbeitsstundenBis: process.env.ARBEITSSTUNDEN_BIS || "40",
+  umzugsbereitschaft: process.env.UMZUGSBEREITSCHAFT || "no",
+  gehaltVerhandelbar: process.env.GEHALT_VERHANDELBAR || "yes",
+  deutschLevel: process.env.DEUTSCH_LEVEL || "100",
+  englischLevel: process.env.ENGLISCH_LEVEL || "75",
+  phpLevel: process.env.PHP_LEVEL || "66",
+  htmlLevel: process.env.HTML_LEVEL || "100",
+  cssLevel: process.env.CSS_LEVEL || "100",
+  javascriptLevel: process.env.JAVASCRIPT_LEVEL || "66",
+  fullstackLevel: process.env.FULLSTACK_LEVEL || "66",
 };
 
 // Validierung der Konfiguration
@@ -234,9 +250,10 @@ async function searchJobs(page, browser) {
 
       await randomWait(3000, 4000);
       const applyElement = await newPage1.$('[type="submit"]')
-      console.log("gefunden", applyElement)
       if (applyElement) {
         await fillApplication(newPage1);
+        // Prüfe ob Fragebogen erscheint und fülle aus
+        await fillQuestions(newPage1);
       }
       await newPage1.close();
     }
@@ -277,11 +294,8 @@ async function findQuickApplyJob(page) {
 // Bewerbung ausfüllen
 async function fillApplication(page) {
   console.log("📝 Fülle Bewerbungsformular aus...");
-  //TODO 
-  // wie hat er das mit dem submit gelöst
-  try {
-    await wait(2000);
 
+  try {
     // Prüfe ob Submit-Button existiert
     const submitExists = await page.$('[type="submit"]');
     console.log("Submit-Button gefunden:", !!submitExists);
@@ -290,7 +304,6 @@ async function fillApplication(page) {
     const checkboxClicked = await page.evaluate(() => {
       const checkbox = document.querySelector('.apply-application-process-renderer-wwjaa3');
       if (checkbox) {
-        checkbox.scrollIntoView({ behavior: 'instant', block: 'center' });
         checkbox.click();
         return true;
       }
@@ -307,7 +320,6 @@ async function fillApplication(page) {
     const submitClicked = await page.evaluate(() => {
       const submit = document.querySelector('[type="submit"]');
       if (submit && !submit.disabled) {
-        submit.scrollIntoView({ behavior: 'instant', block: 'center' });
         submit.click();
         return true;
       }
@@ -325,6 +337,117 @@ async function fillApplication(page) {
     return true;
   } catch (error) {
     console.error("❌ Fehler beim Ausfüllen der Bewerbung:", error.message);
+    return false;
+  }
+}
+
+// Definition aller Fragebogen-Felder
+const QUESTION_FIELDS = [
+  { selector: 'select[name*="nationality"]', value: () => CONFIG.staatsangehoerigkeit, type: 'select', label: 'Staatsangehörigkeit' },
+  { selector: 'input[name*="available_since"]', value: () => CONFIG.verfuegbarAb, type: 'input', label: 'Verfügbar ab' },
+  { selector: 'input[name*="available_until"]', value: () => CONFIG.verfuegbarBis, type: 'input', label: 'Verfügbar bis', optional: true },
+  { selector: 'input[name*="hours_start"]', value: () => CONFIG.arbeitsstundenVon, type: 'input', label: 'Arbeitsstunden von' },
+  { selector: 'input[name*="hours_end"]', value: () => CONFIG.arbeitsstundenBis, type: 'input', label: 'Arbeitsstunden bis' },
+  { selector: 'select[name*="willingness_to_relocate"]', value: () => CONFIG.umzugsbereitschaft, type: 'select', label: 'Umzugsbereitschaft' },
+  { selector: 'select[name*="is_salary_flexible"]', value: () => CONFIG.gehaltVerhandelbar, type: 'select', label: 'Gehalt verhandelbar' },
+  { selector: 'select[name*="language__DOT__de"]', value: () => CONFIG.deutschLevel, type: 'select', label: 'Deutsch-Level' },
+  { selector: 'select[name*="language__DOT__en"]', value: () => CONFIG.englischLevel, type: 'select', label: 'Englisch-Level' },
+  { selector: 'select[name*="tool__DOT__31"]', value: () => CONFIG.phpLevel, type: 'select', label: 'PHP-Level' },
+  { selector: 'select[name*="tool__DOT__4816"]', value: () => CONFIG.htmlLevel, type: 'select', label: 'HTML-Level' },
+  { selector: 'select[name*="tool__DOT__32"]', value: () => CONFIG.cssLevel, type: 'select', label: 'CSS-Level' },
+  { selector: 'select[name*="tool__DOT__5"]', value: () => CONFIG.javascriptLevel, type: 'select', label: 'JavaScript-Level' },
+  { selector: 'select[name*="tool__DOT__778018"]', value: () => CONFIG.fullstackLevel, type: 'select', label: 'Full Stack-Level' },
+];
+
+// Generische Funktion zum Ausfüllen eines Feldes
+async function fillField(page, field) {
+  const fieldValue = field.value();
+
+  // Überspringe optionale Felder ohne Wert
+  if (field.optional && !fieldValue) {
+    return false;
+  }
+
+  const element = await page.$(field.selector);
+  if (!element) {
+    return false;
+  }
+
+  if (field.type === 'select') {
+    await page.select(field.selector, fieldValue);
+  } else if (field.type === 'input') {
+    await page.type(field.selector, fieldValue);
+  } else if (field.type === 'checkbox') {
+    await page.evaluate((selector) => {
+      const checkbox = document.querySelector(selector);
+      if (checkbox && !checkbox.checked) {
+        checkbox.click();
+      }
+    }, field.selector);
+  }
+
+  console.log(`✅ ${field.label}: ${fieldValue}`);
+  await randomWait(500, 1000);
+  return true;
+}
+
+// Fragebogen ausfüllen (optionale Seite nach Submit)
+async function fillQuestions(page) {
+  console.log("📋 Prüfe ob Fragebogen-Seite vorhanden ist...");
+
+  try {
+    // Warte kurz ob Fragebogen erscheint
+    await randomWait(2000, 3000);
+
+    // Prüfe ob Fragebogen-Seite existiert
+    const questionForm = await page.$('[data-testid="atsiQuestionsSection"]');
+
+    if (!questionForm) {
+      console.log("ℹ️  Kein Fragebogen vorhanden - überspringe");
+      return true;
+    }
+
+    console.log("📝 Fragebogen gefunden - fülle aus...");
+
+    // Fülle alle Felder aus
+    for (const field of QUESTION_FIELDS) {
+      await fillField(page, field);
+    }
+
+    const legalCheckbox = await page.$('input[type="checkbox"][data-testid*="legal"]');
+    if (legalCheckbox) {
+      await page.evaluate(() => {
+        const checkbox = document.querySelector('input[type="checkbox"][data-testid*="legal"]');
+        if (checkbox && !checkbox.checked) {
+          checkbox.click();
+        }
+      });
+      console.log("✅ Workwise-Zustimmung geklickt");
+      await randomWait(1000, 2000);
+    }
+
+    // Submit-Button klicken
+    console.log("📤 Sende Fragebogen ab...");
+    await randomWait(1000, 2000);
+
+    const submitClicked = await page.evaluate(() => {
+      const submit = document.querySelector('[data-testid="sendApplication"]');
+      if (submit && !submit.disabled) {
+        submit.click();
+        return true;
+      }
+      return false;
+    });
+
+    if (submitClicked) {
+      console.log("✅ Fragebogen abgeschickt!");
+    } else {
+      console.log("❌ Fragebogen Submit-Button nicht klickbar");
+    }
+
+    return true;
+  } catch (error) {
+    console.error("❌ Fehler beim Ausfüllen des Fragebogens:", error.message);
     return false;
   }
 }
@@ -382,9 +505,7 @@ async function main() {
       return;
     }
 
-    // 4. Bewerbung ausfüllen
-    await fillApplication(jobPage);
-
+    // Bewerbung wird bereits in searchJobs ausgefüllt
     console.log("\n✅ Bot erfolgreich beendet!");
 
     if (!CONFIG.testModus) {
