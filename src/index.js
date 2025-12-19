@@ -22,6 +22,7 @@ const CONFIG = {
 
   // Fragebogen
   staatsangehoerigkeit: process.env.STAATSANGEHOERIGKEIT || "DE",
+  gender: process.env.GENDER || "MR",
   verfuegbarAb: process.env.VERFUEGBAR_AB || "2026-01-01",
   verfuegbarBis: process.env.VERFUEGBAR_BIS || "",
   arbeitsstundenVon: process.env.ARBEITSSTUNDEN_VON || "40",
@@ -57,18 +58,6 @@ async function wait(ms, message = "") {
 async function randomWait(min = 1000, max = 3000) {
   const ms = Math.floor(Math.random() * (max - min + 1)) + min;
   await new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-// Menschlichere Texteingabe
-async function humanType(page, selector, text) {
-  await page.waitForSelector(selector, { timeout: 10000 });
-  const element = await page.$(selector);
-  await element.click();
-
-  // Tippe Zeichen für Zeichen mit zufälligen Verzögerungen
-  for (const char of text) {
-    await element.type(char, { delay: Math.random() * 100 + 50 });
-  }
 }
 
 async function acceptCookie(page) {
@@ -177,26 +166,6 @@ async function searchJobs(page, browser) {
 
     await randomWait(100, 200);
 
-    // await acceptCookie(page);
-
-    // await humanType(page, '[placeholder="(Jobtitel, Kompetenz oder Firmenname)"]', CONFIG.suchbegriff)
-
-    // await randomWait(100, 200);
-
-    // await humanType(page, '[placeholder="(Ort oder 5-stellige PLZ)"]', "Deutschland")
-
-    // await randomWait(100, 200);
-
-    // await page.click('[aria-label="Jobs finden"]');
-
-    // await wait(3000, "Warte auf Suchergebnisse...");
-
-    // await page.click('[data-at="applicationMethod-option-schnelle-bewerbung"]');
-    // console.log("✅ Schnelle Bewerbung Filter geklickt");
-
-    // // Warte auf DOM-Stabilisierung nach Filter-Klick
-    // await randomWait(2000, 3000);
-
     // Warte auf neue Job-Elemente
     await page.waitForSelector('article[data-testid="job-item"]', {
       timeout: 10000
@@ -239,6 +208,13 @@ async function searchJobs(page, browser) {
         await randomWait(1000, 2000);
         continue;
       }
+
+      const genderSelect = await newPage.$('.apply-application-process-renderer-uskhxb');
+
+      if (genderSelect) {
+        await newPage.select(genderSelect, CONFIG.gender);
+      }
+
 
       await newPage.click('.job-ad-display-wg9eq6');
 
@@ -365,12 +341,13 @@ async function fillField(page, field) {
 
   // Überspringe optionale Felder ohne Wert
   if (field.optional && !fieldValue) {
-    return false;
+    return { filled: false, missing: false };
   }
 
   const element = await page.$(field.selector);
   if (!element) {
-    return false;
+    // Feld nicht gefunden
+    return { filled: false, missing: true, label: field.label, selector: field.selector };
   }
 
   if (field.type === 'select') {
@@ -388,7 +365,7 @@ async function fillField(page, field) {
 
   console.log(`✅ ${field.label}: ${fieldValue}`);
   await randomWait(500, 1000);
-  return true;
+  return { filled: true, missing: false };
 }
 
 // Fragebogen ausfüllen (optionale Seite nach Submit)
@@ -409,9 +386,52 @@ async function fillQuestions(page) {
 
     console.log("📝 Fragebogen gefunden - fülle aus...");
 
-    // Fülle alle Felder aus
+    // Fülle alle Felder aus und sammle fehlende
+    const missingFields = [];
     for (const field of QUESTION_FIELDS) {
-      await fillField(page, field);
+      const result = await fillField(page, field);
+      if (result.missing && !field.optional) {
+        missingFields.push({ label: result.label, selector: result.selector });
+      }
+    }
+
+    // Prüfe ob es unbekannte required Felder gibt
+    const unknownRequiredFields = await page.evaluate(() => {
+      const allInputs = document.querySelectorAll('input[required], select[required], textarea[required]');
+      const unknown = [];
+
+      allInputs.forEach(input => {
+        // Prüfe ob Feld leer ist
+        if (!input.value && input.type !== 'checkbox') {
+          unknown.push({
+            name: input.name || input.id,
+            type: input.type || input.tagName.toLowerCase(),
+            label: input.labels?.[0]?.textContent?.trim() || 'Unbekannt'
+          });
+        }
+      });
+
+      return unknown;
+    });
+
+    // Warne bei fehlenden bekannten Feldern
+    if (missingFields.length > 0) {
+      console.log("\n⚠️  WARNUNG: Bekannte Felder nicht gefunden:");
+      missingFields.forEach(f => {
+        console.log(`   ❌ ${f.label} (${f.selector})`);
+      });
+    }
+
+    // Stoppe bei unbekannten required Feldern
+    if (unknownRequiredFields.length > 0) {
+      console.log("\n🛑 FEHLER: Unbekannte Pflichtfelder gefunden!");
+      console.log("   Diese Felder müssen zu QUESTION_FIELDS hinzugefügt werden:\n");
+      unknownRequiredFields.forEach(f => {
+        console.log(`   ❌ ${f.label}`);
+        console.log(`      Name: ${f.name}`);
+        console.log(`      Type: ${f.type}\n`);
+      });
+      throw new Error('Unbekannte Pflichtfelder gefunden - bitte QUESTION_FIELDS erweitern!');
     }
 
     const legalCheckbox = await page.$('input[type="checkbox"][data-testid*="legal"]');
